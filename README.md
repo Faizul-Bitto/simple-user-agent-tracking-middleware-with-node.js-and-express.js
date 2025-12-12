@@ -19,7 +19,9 @@ A lightweight Express.js API server that implements user-agent tracking and vali
 ## ✨ Features
 
 - **User-Agent Validation**: Automatically blocks suspicious user-agents (curl, wget, bots, scanners, etc.)
-- **User-Agent Tracking**: Logs all user-agent strings to a JSON file for analysis
+- **User-Agent Tracking with Counters**: Tracks and counts all user-agent strings (both blocked and non-blocked) in separate JSON files
+- **Interactive Dashboard**: Beautiful web dashboard with real-time statistics, charts, and data visualization
+- **Data Visualization**: Pie charts and bar graphs showing blocked vs non-blocked agents
 - **Token Authentication**: Simple token-based authentication via query parameter
 - **Request Validation**: Uses Joi schema validation for user data
 - **RESTful API**: Clean REST endpoints for user management
@@ -72,9 +74,51 @@ npm start
 
 The server will start on the port specified in your `.env` file (default: 3000).
 
+### Viewing the Dashboard
+
+Once the server is running, open your browser and navigate to:
+
+```
+http://localhost:3000
+```
+
+You'll see an interactive dashboard displaying:
+- Statistics cards (Total User Agents, Total Requests, Total Blocked)
+- Pie chart showing blocked vs not blocked user agents
+- Bar chart showing all blocked agents with their counts
+- Detailed table with all user agents and their tracking data
+
 ## 📡 API Endpoints
 
-All endpoints are prefixed with `/api` and require:
+### Get User Agent Tracking Data
+
+```http
+GET /api/user-agent-tracking
+```
+
+**No authentication required** - This endpoint is public for dashboard access.
+
+**Response:**
+```json
+[
+  {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "blocked": "No",
+    "count": 5,
+    "blockedCount": 0
+  },
+  {
+    "userAgent": "curl/8.16.0",
+    "blocked": "Yes",
+    "count": 0,
+    "blockedCount": 3
+  }
+]
+```
+
+### User Management Endpoints
+
+All user endpoints are prefixed with `/api` and require:
 1. A valid token query parameter (`?token=123`)
 2. A valid user-agent header (not blocked)
 
@@ -179,7 +223,10 @@ Located in `middleware/CheckUserAgent.js`
   - `Nikto`
   - `HeadlessChrome`
   - `PhantomJS`
-- **Tracking**: Logs all user-agent strings to `userAgent.json`
+- **Tracking**: 
+  - Non-blocked agents: Logs to `userAgentTracking/userAgent.json` with counters
+  - Blocked agents: Logs to `userAgentTracking/blockedUserAgent.json` with counters
+  - Each user agent is tracked with a count of how many times it was seen
 - **Response**: Returns 403 Forbidden if user-agent is missing or blocked
 
 ## 📁 Project Structure
@@ -187,22 +234,28 @@ Located in `middleware/CheckUserAgent.js`
 ```
 .
 ├── controller/
-│   └── UserController.js      # User business logic
+│   ├── UserController.js                    # User business logic
+│   └── UserAgentTrackingController.js      # User agent tracking data controller
 ├── middleware/
-│   ├── CheckUserAgent.js      # User-agent validation middleware
-│   └── IsValid.js              # Token validation middleware
+│   ├── CheckUserAgent.js                    # User-agent validation middleware
+│   └── IsValid.js                           # Token validation middleware
 ├── model/
 │   └── schema/
-│       └── User.js             # Joi validation schema
+│       └── User.js                          # Joi validation schema
 ├── routes/
-│   └── user.js                 # User routes
+│   ├── user.js                              # User routes
+│   └── userAgentTracking.js                 # User agent tracking routes
 ├── utils/
-│   └── logger.js               # User-agent logging utility
-├── index.js                    # Application entry point
-├── users.js                    # User data store
-├── userAgent.json              # Logged user-agent strings
-├── package.json                # Project dependencies
-└── README.md                   # This file
+│   └── logger.js                            # User-agent logging utility with counters
+├── public/
+│   └── index.html                           # Interactive dashboard (HTML/CSS/JS)
+├── userAgentTracking/
+│   ├── userAgent.json                       # Non-blocked user agents with counts
+│   └── blockedUserAgent.json               # Blocked user agents with counts
+├── index.js                                 # Application entry point
+├── users.js                                 # User data store
+├── package.json                             # Project dependencies
+└── README.md                                # This file
 ```
 
 ## 🛠️ Technologies Used
@@ -210,6 +263,7 @@ Located in `middleware/CheckUserAgent.js`
 - **Express.js** (v5.1.0): Web framework for Node.js
 - **Joi** (v18.0.1): Schema validation library
 - **Nodemon** (v3.1.10): Development tool for auto-restarting server
+- **Chart.js**: JavaScript charting library for data visualization (loaded via CDN)
 
 ## 💡 Examples
 
@@ -265,14 +319,38 @@ GET http://localhost:3000/api/users?token=wrong
 1. **User-Agent Filtering**: Blocks automated tools and bots
 2. **Token Authentication**: Simple token-based access control
 3. **Request Validation**: Validates all incoming user data using Joi schemas
-4. **User-Agent Logging**: Tracks all user-agent strings for security analysis
+4. **User-Agent Tracking with Counters**: Tracks and counts all user-agent strings (both blocked and non-blocked) for security analysis
+5. **Separate Tracking Files**: Maintains separate files for blocked and non-blocked agents for better analysis
+
+## 📊 Dashboard Features
+
+The interactive dashboard provides:
+
+- **Statistics Overview**: 
+  - Total User Agents tracked
+  - Total Requests (non-blocked)
+  - Total Blocked requests
+
+- **Pie Chart**: Visual representation of blocked vs not blocked user agents with percentages
+
+- **Bar Chart**: All blocked user agents displayed with their blocked counts
+
+- **Detailed Table**: Complete list of all user agents showing:
+  - User Agent Name
+  - Blocked Status (Yes/No)
+  - Count (non-blocked requests)
+  - Blocked Count
+
+- **Manual Refresh**: Click the refresh button to update data (no auto-refresh)
 
 ## 📝 Notes
 
-- The `userAgent.json` file is automatically created and updated with all user-agent strings
+- The `userAgentTracking/` directory is automatically created with JSON files tracking user agents
+- Files use object format: `{ "user-agent-string": count }` for efficient tracking
 - User data is currently stored in memory (`users.js`). For production, consider using a database
 - The token validation is simplified for demonstration. For production, use proper authentication (JWT, OAuth, etc.)
 - The user-agent blocking patterns can be customized in `middleware/CheckUserAgent.js`
+- The dashboard is accessible at the root URL (`http://localhost:PORT`) without authentication
 
 ## 👤 Author
 
